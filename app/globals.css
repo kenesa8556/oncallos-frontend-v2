@@ -1,26 +1,51 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@theme {
+  /* ---- VS Code Dark+ palette, as UI tokens ---- */
+  --color-ink: #D4D4D4;           /* primary text */
+  --color-slate: #9D9D9D;         /* secondary text */
+  --color-muted: #858585;         /* tertiary text, timestamps */
+  --color-surface: #1E1E1E;       /* page background */
+  --color-white: #252526;         /* card/panel background (name kept for component compat) */
+  --color-border: #3C3C3C;
+  --color-border-subtle: #333333;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  /* ---- Accent ---- */
+  --color-primary: #569CD6;        /* keyword blue — links, active states */
+  --color-primary-hover: #007ACC;  /* status-bar blue — buttons */
+  --color-primary-subtle: #1D3049; /* dark-tinted, not a light pastel */
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* ---- Status ---- */
+  --color-success: #B5CEA8;
+  --color-success-subtle: #23301F;
+  --color-warning: #DCDCAA;
+  --color-warning-subtle: #332F1E;
+  --color-critical: #F44747;
+  --color-critical-subtle: #3A1F1F;
+  --color-info: #569CD6;
+  --color-info-subtle: #1D3049;
+
+  /* ---- Extra editor accents (not in the original 8-token set) ---- */
+  --color-teal: #4EC9B0;    /* class/type — good for "monitoring" or agent-active states */
+  --color-orange: #CE9178;  /* string orange */
+  --color-purple: #C586C0;  /* control purple — user avatars */
+  --color-selection: #264F78;
+
+  /* ---- Typography (unchanged) ---- */
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+
+  /* ---- Radius (unchanged) ---- */
+  --radius-button: 6px;
+  --radius-card: 8px;
+  --radius-pill: 999px;
+
+  /* ---- Shadow — VS Code doesn't really use them; keep minimal ---- */
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
 }
