@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { ChevronDown, Check, Loader2 } from "lucide-react";
 import { setActiveOrg } from "../actions/org";
 
 export default function OrgSwitcher({
@@ -43,7 +44,11 @@ export default function OrgSwitcher({
           <div className="text-[13px] font-semibold truncate">{orgName}</div>
           <div className="text-[10.5px] text-muted font-mono uppercase">{orgPlan} plan</div>
         </div>
-        <span className="text-[10px] text-muted/70">{isPending ? "…" : "▾"}</span>
+        {isPending ? (
+          <Loader2 size={13} className="animate-spin text-muted/70 shrink-0" />
+        ) : (
+          <ChevronDown size={13} className="text-muted/70 shrink-0" />
+        )}
       </button>
 
       {open && (
@@ -59,7 +64,7 @@ export default function OrgSwitcher({
                 }`}
               >
                 {o.name}
-                {o.id === orgId && <span className="text-[11px]">✓</span>}
+                {o.id === orgId && <Check size={13} />}
               </button>
             ))}
           </div>

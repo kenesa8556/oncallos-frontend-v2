@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../../lib/supabase";
 import { useOrg } from "../../../lib/OrgContext";
+import UsageCard from "../../../components/UsageCard";
 
 export default function OrganizationSettingsPage() {
   const { orgId, orgName, orgPlan, userRole } = useOrg();
@@ -97,6 +98,9 @@ export default function OrganizationSettingsPage() {
           </button>
         )}
       </form>
+      <div className="mt-6">
+        <UsageCard />
+      </div>
     </div>
   );
 }

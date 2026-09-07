@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "../../lib/supabase";
 import { useOrg } from "../../lib/OrgContext";
+import { AlertTriangle, CheckCircle2, ListChecks, Activity } from "lucide-react";
 
 interface Incident {
   id: string;
@@ -56,21 +57,24 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 mb-7">
         {[
-          { title: "Open incidents", value: open, icon: "⚠", color: "text-critical bg-critical/15" },
-          { title: "Resolved", value: resolved, icon: "✓", color: "text-success bg-success/15" },
-          { title: "Total incidents", value: total, icon: "▤", color: "text-primary bg-primary/15" },
-          { title: "Status", value: "Live", icon: "⎔", color: "text-teal bg-teal/15" },
-        ].map((s) => (
-          <div key={s.title} className="bg-white border border-border rounded-[8px] p-4">
-            <div className="flex items-center justify-between mb-2.5">
-              <span className="text-[12px] text-muted">{s.title}</span>
-              <div className={`w-[22px] h-[22px] rounded-[5px] flex items-center justify-center text-[11px] ${s.color}`}>
-                {s.icon}
-              </div>
-            </div>
-            <div className="text-[24px] font-bold font-mono">{s.value ?? "—"}</div>
-          </div>
-        ))}
+          { title: "Open incidents", value: open, Icon: AlertTriangle, color: "text-critical bg-critical/15" },
+          { title: "Resolved", value: resolved, Icon: CheckCircle2, color: "text-success bg-success/15" },
+          { title: "Total incidents", value: total, Icon: ListChecks, color: "text-primary bg-primary/15" },
+          { title: "Status", value: "Live", Icon: Activity, color: "text-teal bg-teal/15" },
+        ].map((s) => {
+              const Icon = s.Icon;
+              return (
+                <div key={s.title} className="bg-white border border-border rounded-[8px] p-4">
+                  <div className="flex items-center justify-between mb-2.5">
+                    <span className="text-[12px] text-muted">{s.title}</span>
+                    <div className={`w-[22px] h-[22px] rounded-[5px] flex items-center justify-center ${s.color}`}>
+                      <Icon size={13} strokeWidth={2} />
+                    </div>
+                  </div>
+                  <div className="text-[24px] font-bold font-mono">{s.value ?? "—"}</div>
+                </div>
+              );
+            })}
       </div>
 
       <div className="bg-white border border-border rounded-[8px] overflow-hidden">

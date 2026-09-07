@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
+import { ShieldCheck, RotateCcw, KeyRound, ScrollText, BadgeCheck, Blocks } from "lucide-react";
 
 async function getUser() {
   const cookieStore = await cookies();
@@ -290,21 +291,23 @@ export default async function Home() {
         </div>
         <div className="grid md:grid-cols-3 gap-5">
           {[
-            { icon: "✓", title: "Human approval gates", body: "High-risk or unfamiliar actions always wait for explicit sign-off — never guessed at." },
-            { icon: "↺", title: "Snapshot & rollback", body: "State is captured before every action, so a bad fix can always be undone." },
-            { icon: "◎", title: "Scoped credentials", body: "OnCallOS only ever holds the exact, limited permissions you grant it — nothing more." },
-            { icon: "▤", title: "Full audit log", body: "Every diagnosis, action, and approval is recorded and reviewable after the fact." },
-            { icon: "✔", title: "Delayed verification", body: "Fixes are confirmed against real recurrence, not assumed the moment an API call succeeds." },
-            { icon: "⎔", title: "Adapter architecture", body: "Built to support Railway, Kubernetes, or AWS — your infrastructure, your rules." },
-          ].map((t) => (
-            <div key={t.title} className="bg-white border border-border rounded-[8px] p-6">
-              <div className="w-8 h-8 rounded-[6px] bg-primary-subtle text-primary flex items-center justify-center text-[15px] mb-4">
-                {t.icon}
-              </div>
-              <h4 className="text-[14.5px] font-semibold mb-1.5">{t.title}</h4>
-              <p className="text-[13px] leading-[1.6] text-slate">{t.body}</p>
-            </div>
-          ))}
+            { Icon: ShieldCheck, title: "Human approval gates", body: "High-risk or unfamiliar actions always wait for explicit sign-off — never guessed at." },
+              { Icon: RotateCcw, title: "Snapshot & rollback", body: "State is captured before every action, so a bad fix can always be undone." },
+              { Icon: KeyRound, title: "Scoped credentials", body: "OnCallOS only ever holds the exact, limited permissions you grant it — nothing more." },
+              { Icon: ScrollText, title: "Full audit log", body: "Every diagnosis, action, and approval is recorded and reviewable after the fact." },
+              { Icon: BadgeCheck, title: "Delayed verification", body: "Fixes are confirmed against real recurrence, not assumed the moment an API call succeeds." },
+              { Icon: Blocks, title: "Adapter architecture", body: "Built to support Railway, Kubernetes, or AWS — your infrastructure, your rules." },
+                    ].map((t) => {
+                      const Icon = t.Icon;
+                      return(
+                            <div key={t.title} className="bg-white border border-border rounded-[8px] p-6">
+                              <div className="w-8 h-8 rounded-[6px] bg-primary-subtle text-primary flex items-center justify-center text-[15px] mb-4">
+                                <Icon size={16} strokeWidth={2} />
+                              </div>
+                              <h4 className="text-[14.5px] font-semibold mb-1.5">{t.title}</h4>
+                              <p className="text-[13px] leading-[1.6] text-slate">{t.body}</p>
+                            </div>
+                          )})}
         </div>
       </section>
 
