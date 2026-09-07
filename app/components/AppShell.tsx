@@ -2,6 +2,8 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import { OrgContext } from "../lib/OrgContext";
+import OrgSwitcher from "./OrgSwitcher";
 
 const mainNav = [
   { href: "/dashboard", icon: "▦", label: "Dashboard" },
@@ -24,6 +26,7 @@ export default function AppShell({
   orgId,
   orgName,
   orgPlan,
+  orgList
 }: {
   children: React.ReactNode;
   userEmail: string;
@@ -31,6 +34,7 @@ export default function AppShell({
   orgId: string;
   orgName: string;
   orgPlan: string;
+  orgList: { id: string; name: string }[];
 }) {
   const pathname = usePathname();
   const initials = orgName.slice(0, 2).toUpperCase();
@@ -42,20 +46,12 @@ export default function AppShell({
   };
 
   return (
+    <OrgContext.Provider value={{ orgId, orgName, orgPlan, userRole, orgList }}>
     <div className="flex min-h-screen bg-surface text-ink text-[14px]">
       {/* Sidebar */}
       <aside className="w-[240px] shrink-0 bg-white border-r border-border flex flex-col">
         <div className="p-3.5 border-b border-border">
-          <button className="w-full flex items-center gap-2.5 bg-[#2D2D30] border border-border rounded-[7px] px-2.5 py-2 text-left hover:bg-[#2A2D2E] transition-colors">
-            <div className="w-[22px] h-[22px] rounded-[5px] bg-primary-hover flex items-center justify-center text-[11px] font-bold text-white shrink-0">
-              {initials}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-[13px] font-semibold truncate">{orgName}</div>
-              <div className="text-[10.5px] text-muted font-mono uppercase">{orgPlan} plan</div>
-            </div>
-            <span className="text-[10px] text-muted/70">▾</span>
-          </button>
+          <OrgSwitcher orgId={orgId} orgName={orgName} orgPlan={orgPlan} orgList={orgList} />
         </div>
 
         <nav className="p-2">
@@ -125,5 +121,6 @@ export default function AppShell({
         <div className="flex-1 overflow-y-auto p-6 md:p-8">{children}</div>
       </div>
     </div>
+    </OrgContext.Provider>
   );
 }

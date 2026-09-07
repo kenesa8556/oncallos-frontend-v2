@@ -19,28 +19,35 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: membership } = await supabase
+  // Get ALL of this user's org memberships, not just one
+  const { data: memberships } = await supabase
     .from("organization_members")
     .select("role, organization_id, organizations(name, plan)")
     .eq("user_id", user.id)
-    .limit(1)
-    .single();
+    .order("created_at", { ascending: false });
 
-  if (!membership) {
-    // Real state: a signed-in user with no org yet — Day 9 will build org/new.
-    // For now, this is an honest, non-crashing fallback rather than a hardcoded org.
+  if (!memberships || memberships.length === 0) {
     redirect("/org/new");
   }
 
-  const org = membership.organizations as unknown as { name: string; plan: string };
+  const activeOrgIdCookie = cookieStore.get("active_org_id")?.value;
+  const activeMembership =
+    memberships.find((m) => m.organization_id === activeOrgIdCookie) ?? memberships[0];
+
+  const org = activeMembership.organizations as unknown as { name: string; plan: string };
+  const orgList = memberships.map((m) => ({
+    id: m.organization_id,
+    name: (m.organizations as unknown as { name: string }).name,
+  }));
 
   return (
     <AppShell
       userEmail={user.email ?? ""}
-      userRole={membership.role}
-      orgId={membership.organization_id}
+      userRole={activeMembership.role}
+      orgId={activeMembership.organization_id}
       orgName={org.name}
       orgPlan={org.plan}
+      orgList={orgList}
     >
       {children}
     </AppShell>

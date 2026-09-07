@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "../../lib/supabase";
+import { useOrg } from "../../lib/OrgContext";
 
 interface Incident {
   id: string;
@@ -13,6 +14,7 @@ interface Incident {
 }
 
 export default function DashboardPage() {
+  const { orgId } = useOrg();
   const [incidents, setIncidents] = useState<Incident[] | null>(null);
   const [error, setError] = useState("");
 
@@ -21,19 +23,10 @@ export default function DashboardPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      const { data: membership } = await supabase
-        .from("organization_members")
-        .select("organization_id")
-        .eq("user_id", session.user.id)
-        .limit(1)
-        .single();
-
-      if (!membership) return;
-
       const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/incidents`, {
         headers: {
           Authorization: `Bearer ${session.access_token}`,
-          "X-Organization-Id": membership.organization_id,
+          "X-Organization-Id": orgId,
         },
       });
 
@@ -44,7 +37,7 @@ export default function DashboardPage() {
       setIncidents(await res.json());
     }
     load();
-  }, []);
+  }, [orgId]);
 
   const open = incidents?.filter((i) => i.status !== "resolved").length ?? null;
   const resolved = incidents?.filter((i) => i.status === "resolved").length ?? null;
