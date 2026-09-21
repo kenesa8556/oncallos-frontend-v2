@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "../../../lib/supabase";
 import { useOrg } from "../../../lib/OrgContext";
+import IncidentChat from "../../../components/IncidentChat";
 
 
 interface Diagnosis {
@@ -40,7 +41,7 @@ export default function IncidentDetailPage() {
 
   const [data, setData] = useState<IncidentDetail | null>(null);
   const [error, setError] = useState("");
-  const [tab, setTab] = useState<"diagnosis" | "timeline" | "snapshots">("diagnosis");
+  const [tab, setTab] = useState<"diagnosis" | "timeline" | "snapshots" | "chat">("diagnosis");
 
   useEffect(() => {
     async function load() {
@@ -91,10 +92,11 @@ export default function IncidentDetailPage() {
   ].sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
 
   const tabs = [
-    { id: "diagnosis" as const, label: "Diagnosis" },
-    { id: "timeline" as const, label: "Timeline" },
-    { id: "snapshots" as const, label: `Snapshots (${snapshots.length})` },
-  ];
+  { id: "diagnosis" as const, label: "Diagnosis" },
+  { id: "timeline" as const, label: "Timeline" },
+  { id: "snapshots" as const, label: `Snapshots (${snapshots.length})` },
+  { id: "chat" as const, label: "Chat" },
+];
 
   return (
     <div>
@@ -199,6 +201,10 @@ export default function IncidentDetailPage() {
             </div>
           )}
         </div>
+      )}
+
+      {tab === "chat" && (
+          <IncidentChat incidentId={id} />
       )}
     </div>
   );
