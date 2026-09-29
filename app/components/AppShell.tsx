@@ -16,6 +16,7 @@ import {
   LogOut,
   Menu,
   Zap,
+  Webhook,
   X,
 } from "lucide-react";
 import { OrgContext } from "../lib/OrgContext";
@@ -35,6 +36,7 @@ const settingsNav = [
   { href: "/settings/risk-rules", icon: Scale, label: "Risk Rules" },
   { href: "/settings/billing", icon: CreditCard, label: "Billing" },
   { href: "/settings/execution", icon: Zap, label: "Execution" },
+  { href: "/settings/integrations/datadog", icon: Webhook, label: "Datadog" },
 ];
 
 export default function AppShell({

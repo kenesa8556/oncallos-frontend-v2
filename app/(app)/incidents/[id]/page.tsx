@@ -37,32 +37,64 @@ interface IncidentDetail {
 export default function IncidentDetailPage() {
   const params = useParams();
   const id = params.id as string;
-  const { orgId } = useOrg();
+  const { orgId, userRole } = useOrg();
 
   const [data, setData] = useState<IncidentDetail | null>(null);
   const [error, setError] = useState("");
   const [tab, setTab] = useState<"diagnosis" | "timeline" | "snapshots" | "chat">("diagnosis");
+  const [rollingBack, setRollingBack] = useState(false);
+  const [rollbackResult, setRollbackResult] = useState<"success" | "error" | null>(null);
+
+  const isOwner = userRole === "owner";
+
+  async function load() {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/incidents/${id}`, {
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+        "X-Organization-Id": orgId,
+      },
+    });
+
+    if (!res.ok) {
+      setError("Could not load this incident.");
+      return;
+    }
+    setData(await res.json());
+  }
 
   useEffect(() => {
-    async function load() {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/incidents/${id}`, {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-          "X-Organization-Id": orgId,
-        },
-      });
-
-      if (!res.ok) {
-        setError("Could not load this incident.");
-        return;
-      }
-      setData(await res.json());
-    }
     load();
   }, [id, orgId]);
+
+  async function handleRollback() {
+    if (!confirm("This will restore the service to the state captured in the most recent snapshot. Continue?")) {
+      return;
+    }
+    setRollingBack(true);
+    setRollbackResult(null);
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/incidents/${id}/rollback`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+        "X-Organization-Id": orgId,
+      },
+    });
+
+    setRollingBack(false);
+    if (!res.ok) {
+      setRollbackResult("error");
+      return;
+    }
+    setRollbackResult("success");
+    load();
+  }
 
   if (error) {
     return (
@@ -77,6 +109,7 @@ export default function IncidentDetailPage() {
 
   const { incident, diagnoses, resolutions, snapshots } = data;
   const latestDiagnosis = diagnoses[0];
+  const latestSnapshot = snapshots[0];
 
   const severityPill =
     incident.severity === "high"
@@ -189,16 +222,47 @@ export default function IncidentDetailPage() {
               No snapshot was taken for this incident — stateless actions (like restarts) don&apos;t require one.
             </p>
           ) : (
-            <div className="flex flex-col gap-3">
-              {snapshots.map((s) => (
-                <div key={s.id} className="bg-surface border border-border rounded-[6px] p-3.5">
-                  <div className="text-[11.5px] font-mono text-muted mb-2">{new Date(s.created_at).toLocaleString()}</div>
-                  <pre className="text-[12px] font-mono text-ink whitespace-pre-wrap break-all">
-                    {JSON.stringify(s.state_data, null, 2)}
-                  </pre>
+            <>
+              {isOwner && (
+                <div className="mb-5 pb-5 border-b border-border-subtle flex items-center justify-between flex-wrap gap-3">
+                  <div>
+                    <div className="text-[13px] font-medium mb-0.5">Roll back to most recent snapshot</div>
+                    <div className="text-[11.5px] text-muted">
+                      Restores state captured on {new Date(latestSnapshot.created_at).toLocaleString()}
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleRollback}
+                    disabled={rollingBack}
+                    className="text-[13px] font-semibold px-4 py-2.5 rounded-[6px] bg-critical text-white hover:bg-critical/90 transition-colors disabled:opacity-50 shrink-0"
+                  >
+                    {rollingBack ? "Rolling back..." : "Roll back"}
+                  </button>
                 </div>
-              ))}
-            </div>
+              )}
+
+              {rollbackResult === "success" && (
+                <div className="mb-5 text-[13px] text-success bg-success-subtle/40 border border-success/30 rounded-[6px] px-3.5 py-2.5">
+                  Rollback completed successfully.
+                </div>
+              )}
+              {rollbackResult === "error" && (
+                <div className="mb-5 text-[13px] text-critical bg-critical-subtle/40 border border-critical/30 rounded-[6px] px-3.5 py-2.5">
+                  Rollback failed. Check the incident chat or timeline for details.
+                </div>
+              )}
+
+              <div className="flex flex-col gap-3">
+                {snapshots.map((s) => (
+                  <div key={s.id} className="bg-surface border border-border rounded-[6px] p-3.5">
+                    <div className="text-[11.5px] font-mono text-muted mb-2">{new Date(s.created_at).toLocaleString()}</div>
+                    <pre className="text-[12px] font-mono text-ink whitespace-pre-wrap break-all">
+                      {JSON.stringify(s.state_data, null, 2)}
+                    </pre>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </div>
       )}

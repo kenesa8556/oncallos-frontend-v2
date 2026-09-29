@@ -4,24 +4,25 @@ import { useEffect, useState } from "react";
 import { supabase } from "../../../lib/supabase";
 import { useOrg } from "../../../lib/OrgContext";
 
-interface CredentialStatus {
-  configured: boolean;
-  provider?: string;
-  railway_service_id?: string;
-  created_at?: string;
+interface RailwayService {
+  id: string;
+  service_name: string;
+  railway_service_id: string;
+  created_at: string;
 }
 
 export default function ExecutionSettingsPage() {
   const { orgId, userRole } = useOrg();
-  const [status, setStatus] = useState<CredentialStatus | null>(null);
+  const [services, setServices] = useState<RailwayService[] | null>(null);
   const [token, setToken] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [editing, setEditing] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [removing, setRemoving] = useState<string | null>(null);
 
+  const [serviceName, setServiceName] = useState("");
   const [railwayToken, setRailwayToken] = useState("");
-  const [serviceId, setServiceId] = useState("");
+  const [railwayServiceId, setRailwayServiceId] = useState("");
   const [environmentId, setEnvironmentId] = useState("");
 
   const isOwner = userRole === "owner";
@@ -36,18 +37,17 @@ export default function ExecutionSettingsPage() {
     });
 
     if (!res.ok) {
-      setError("Could not load execution credentials.");
+      setError("Could not load execution services.");
       return;
     }
-    const data = await res.json();
-    setStatus(data);
+    setServices(await res.json());
   }
 
   useEffect(() => {
     load();
   }, [orgId]);
 
-  async function handleSave(e: React.FormEvent) {
+  async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setSaving(true);
@@ -58,22 +58,42 @@ export default function ExecutionSettingsPage() {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ token: railwayToken, serviceId, environmentId }),
+      body: JSON.stringify({
+        serviceName,
+        token: railwayToken,
+        serviceId: railwayServiceId,
+        environmentId,
+      }),
     });
 
     setSaving(false);
     if (!res.ok) {
-      setError("Could not save credentials. Check your token and IDs are correct.");
+      const body = await res.json().catch(() => null);
+      setError(body?.message ?? "Could not add this service. Check your token and IDs.");
       return;
     }
 
-    setSaved(true);
-    setEditing(false);
+    setServiceName("");
     setRailwayToken("");
-    setServiceId("");
+    setRailwayServiceId("");
     setEnvironmentId("");
+    setAdding(false);
     load();
-    setTimeout(() => setSaved(false), 2500);
+  }
+
+  async function handleRemove(id: string) {
+    setRemoving(id);
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/organizations/${orgId}/cloud-credentials/${id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    setRemoving(null);
+
+    if (!res.ok) {
+      setError("Could not remove this service.");
+      return;
+    }
+    setServices((prev) => prev?.filter((s) => s.id !== id) ?? null);
   }
 
   const inputClass =
@@ -83,7 +103,7 @@ export default function ExecutionSettingsPage() {
     <div className="max-w-[640px]">
       <h1 className="text-[19px] font-bold tracking-tight mb-1">Execution</h1>
       <p className="text-[13px] text-muted mb-6">
-        Connect a real cloud provider so OnCallOS can automatically resolve incidents — not just diagnose them.
+        Connect the real services OnCallOS can act on. Each one is matched by name to your alerts&apos; service field.
       </p>
 
       {error && (
@@ -92,116 +112,111 @@ export default function ExecutionSettingsPage() {
         </div>
       )}
 
-      {saved && (
-        <div className="mb-5 text-[13px] text-success bg-success-subtle/40 border border-success/30 rounded-[6px] px-3.5 py-2.5">
-          Credentials saved. Low-risk incidents on this service can now be resolved automatically.
-        </div>
-      )}
-
-      <div className="bg-white border border-border rounded-[8px] p-6">
-        {!status && !error && <div className="text-[13px] text-muted">Loading...</div>}
-
-        {status && !status.configured && !editing && (
-          <div>
-            <p className="text-[13px] text-muted mb-4">
-              No execution provider connected yet. Incidents will be diagnosed but not automatically resolved.
-            </p>
-            {isOwner ? (
-              <button
-                onClick={() => setEditing(true)}
-                className="text-[13px] font-semibold px-4 py-2.5 rounded-[6px] bg-primary-hover text-white hover:bg-[#0891E0] transition-colors"
-              >
-                Connect Railway
-              </button>
-            ) : (
-              <p className="text-[12.5px] text-muted bg-surface border border-border rounded-[6px] px-3 py-2">
-                Only the organization owner can connect an execution provider.
-              </p>
-            )}
+      <div className="bg-white border border-border rounded-[8px] overflow-hidden mb-5">
+        {services === null && !error && (
+          <div className="px-5 py-8 text-center text-[13px] text-muted">Loading...</div>
+        )}
+        {services?.length === 0 && (
+          <div className="px-5 py-8 text-center text-[13px] text-muted">
+            No services connected yet — incidents will be diagnosed but not automatically resolved.
           </div>
         )}
 
-        {status && status.configured && !editing && (
-          <div>
-            <div className="flex items-center gap-2.5 mb-4">
-              <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-success-subtle text-success uppercase">
-                Connected
-              </span>
-              <span className="text-[13px] font-medium capitalize">{status.provider}</span>
-            </div>
-            <div className="text-[12.5px] text-muted font-mono mb-1">Service: {status.railway_service_id}</div>
-            <div className="text-[12.5px] text-muted mb-5">
-              Connected {status.created_at ? new Date(status.created_at).toLocaleDateString() : ""}
+        {services?.map((s) => (
+          <div
+            key={s.id}
+            className="flex items-center justify-between gap-3 px-5 py-3.5 border-b border-border-subtle last:border-b-0 flex-wrap"
+          >
+            <div className="min-w-0">
+              <div className="text-[13px] font-semibold font-mono">{s.service_name}</div>
+              <div className="text-[11.5px] font-mono text-muted mt-0.5">Railway service {s.railway_service_id.slice(0, 8)}...</div>
+              <div className="text-[11px] text-muted/70 mt-0.5">Connected {new Date(s.created_at).toLocaleDateString()}</div>
             </div>
             {isOwner && (
               <button
-                onClick={() => setEditing(true)}
-                className="text-[13px] font-semibold px-4 py-2.5 rounded-[6px] border border-border text-ink hover:bg-surface transition-colors"
+                onClick={() => handleRemove(s.id)}
+                disabled={removing === s.id}
+                className="text-[12.5px] font-medium text-critical hover:bg-critical-subtle/40 px-3 py-1.5 rounded-[6px] transition-colors disabled:opacity-50 shrink-0"
               >
-                Update connection
+                {removing === s.id ? "Removing..." : "Remove"}
               </button>
             )}
           </div>
-        )}
-
-        {editing && (
-          <form onSubmit={handleSave} className="flex flex-col gap-3.5">
-            <div>
-              <label className="block text-[12.5px] font-medium text-slate mb-1.5">Railway Project Token</label>
-              <input
-                type="password"
-                value={railwayToken}
-                onChange={(e) => setRailwayToken(e.target.value)}
-                required
-                placeholder="Project-scoped token, not account-wide"
-                className={inputClass}
-              />
-              <p className="text-[11.5px] text-muted mt-1.5">
-                Generate one in Railway → your project → Settings → Tokens. Never paste an account-level token here.
-              </p>
-            </div>
-            <div>
-              <label className="block text-[12.5px] font-medium text-slate mb-1.5">Service ID</label>
-              <input
-                type="text"
-                value={serviceId}
-                onChange={(e) => setServiceId(e.target.value)}
-                required
-                placeholder="Found in the service's URL on Railway"
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label className="block text-[12.5px] font-medium text-slate mb-1.5">Environment ID</label>
-              <input
-                type="text"
-                value={environmentId}
-                onChange={(e) => setEnvironmentId(e.target.value)}
-                required
-                placeholder="Also found in the service's URL, after ?environmentId="
-                className={inputClass}
-              />
-            </div>
-
-            <div className="flex gap-2.5 mt-1">
-              <button
-                type="submit"
-                disabled={saving}
-                className="text-[13px] font-semibold px-4 py-2.5 rounded-[6px] bg-primary-hover text-white hover:bg-[#0891E0] transition-colors disabled:opacity-50"
-              >
-                {saving ? "Saving..." : "Save connection"}
-              </button>
-              <button
-                type="button"
-                onClick={() => setEditing(false)}
-                className="text-[13px] font-semibold px-4 py-2.5 rounded-[6px] border border-border text-slate hover:bg-surface transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
-        )}
+        ))}
       </div>
+
+      {isOwner && !adding && (
+        <button
+          onClick={() => setAdding(true)}
+          className="text-[13px] font-semibold px-4 py-2.5 rounded-[6px] bg-primary-hover text-white hover:bg-[#0891E0] transition-colors"
+        >
+          Connect a service
+        </button>
+      )}
+
+      {isOwner && adding && (
+        <form onSubmit={handleAdd} className="bg-white border border-border rounded-[8px] p-6 flex flex-col gap-3.5">
+          <div>
+            <label className="block text-[12.5px] font-medium text-slate mb-1.5">Service name</label>
+            <input
+              type="text"
+              value={serviceName}
+              onChange={(e) => setServiceName(e.target.value)}
+              required
+              placeholder="Must match the service name your alerts use, e.g. checkout-api"
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label className="block text-[12.5px] font-medium text-slate mb-1.5">Railway Project Token</label>
+            <input
+              type="password"
+              value={railwayToken}
+              onChange={(e) => setRailwayToken(e.target.value)}
+              required
+              placeholder="Project-scoped token, not account-wide"
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label className="block text-[12.5px] font-medium text-slate mb-1.5">Railway Service ID</label>
+            <input
+              type="text"
+              value={railwayServiceId}
+              onChange={(e) => setRailwayServiceId(e.target.value)}
+              required
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label className="block text-[12.5px] font-medium text-slate mb-1.5">Environment ID</label>
+            <input
+              type="text"
+              value={environmentId}
+              onChange={(e) => setEnvironmentId(e.target.value)}
+              required
+              className={inputClass}
+            />
+          </div>
+
+          <div className="flex gap-2.5 mt-1">
+            <button
+              type="submit"
+              disabled={saving}
+              className="text-[13px] font-semibold px-4 py-2.5 rounded-[6px] bg-primary-hover text-white hover:bg-[#0891E0] transition-colors disabled:opacity-50"
+            >
+              {saving ? "Saving..." : "Add service"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setAdding(false)}
+              className="text-[13px] font-semibold px-4 py-2.5 rounded-[6px] border border-border text-slate hover:bg-surface transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
     </div>
   );
 }
