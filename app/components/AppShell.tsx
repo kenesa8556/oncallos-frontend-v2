@@ -1,5 +1,5 @@
 "use client";
-
+import { usePendingCount } from "../lib/usePendingCount";
 import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -60,6 +60,7 @@ export default function AppShell({
   const router = useRouter();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const userInitials = userEmail.slice(0, 2).toUpperCase();
+  const pendingCount = usePendingCount(orgId);
 
   const titleFor = (path: string) => {
     const all = [...mainNav, ...settingsNav];
@@ -100,9 +101,9 @@ export default function AppShell({
             >
               <Icon size={15} strokeWidth={2} className="shrink-0" />
               {showLabels && <span>{item.label}</span>}
-              {showLabels && item.badge && (
-                <span className="ml-auto text-[10.5px] font-mono bg-warning/15 text-warning rounded-full px-1.5">1</span>
-              )}
+              {showLabels && item.badge && pendingCount > 0 && (
+                  <span>{pendingCount}</span>
+                )}
             </Link>
           );
         })}

@@ -62,6 +62,7 @@ export default function ApprovalsPage() {
       return;
     }
     setItems((prev) => prev?.filter((i) => i.id !== diagnosisId) ?? null);
+    window.dispatchEvent(new Event("approvals-changed"));
   }
 
   const severityPill = (s: string) =>
